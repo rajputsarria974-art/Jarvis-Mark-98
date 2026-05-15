@@ -14,76 +14,61 @@ HTML_UI = """
     <title>JARVIS MARK-100</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* Lightweight Animations for better performance on Asus X52J */
         body { 
-            background: #000 url('http://googleusercontent.com/image_collection/image_retrieval/688826044006652512_1') no-repeat center center fixed; 
-            background-size: cover;
+            background: #000; 
             color: #00f2ff; 
             font-family: 'Segoe UI', sans-serif; 
-            text-align: center; 
             margin: 0;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-        .glass-panel {
-            background: rgba(0, 15, 30, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 242, 255, 0.4);
+        .main-container {
+            border: 2px solid #00f2ff;
             width: 90%;
             max-width: 500px;
             height: 80vh;
-            border-radius: 25px;
-            padding: 20px;
-            box-shadow: 0 0 50px rgba(0, 242, 255, 0.3);
+            border-radius: 15px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
+            background: rgba(0, 20, 40, 0.9);
+            box-shadow: 0 0 20px #00f2ff;
         }
-        h2 { margin: 10px 0; letter-spacing: 5px; text-transform: uppercase; }
         #display {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 15px;
             text-align: left;
-            font-size: 15px;
-            scrollbar-width: none;
+            padding: 10px;
+            font-size: 16px;
         }
         input {
             width: 100%;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            background: #000;
             border: 1px solid #00f2ff;
-            border-radius: 50px;
             color: #fff;
-            font-size: 16px;
+            border-radius: 5px;
             outline: none;
-            box-sizing: border-box;
         }
-        .arc-reactor {
-            width: 60px;
-            height: 60px;
-            border: 3px double #00f2ff;
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #00f2ff;
             border-radius: 50%;
-            margin: 0 auto;
-            animation: pulse 2s infinite ease-in-out;
+            display: inline-block;
+            animation: blink 1s infinite;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 10px #00f2ff; }
-            50% { transform: scale(1.05); box-shadow: 0 0 30px #00f2ff; }
-            100% { transform: scale(1); box-shadow: 0 0 10px #00f2ff; }
-        }
+        @keyframes blink { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
     </style>
 </head>
 <body>
-    <div class="glass-panel">
-        <div class="arc-reactor"></div>
-        <h2>J.A.R.V.I.S.</h2>
-        <div id="display">
-            <div style="color:#00f2ff;">SYSTEM RE-BOOTED. LLAMA-3 CORE ACTIVE. READY, SIR ARSLAN.</div>
-        </div>
-        <div style="padding-top: 15px;">
-            <input type="text" id="userInput" placeholder="Type here..." onkeypress="if(event.key==='Enter') send()">
-        </div>
+    <div class="main-container">
+        <div style="text-align: left;"><span class="status-dot"></span> JARVIS CORE ONLINE</div>
+        <div id="display">READY FOR INPUT, SIR ARSLAN.</div>
+        <input type="text" id="userInput" placeholder="Command..." onkeypress="if(event.key==='Enter') send()">
     </div>
 
     <script>
@@ -93,16 +78,15 @@ HTML_UI = """
             let msg = input.value;
             if(!msg) return;
 
-            display.innerHTML += `<div style="color:#fff; margin-top:10px;"><b>Arslan:</b> ${msg}</div>`;
+            display.innerHTML += `<div style="color:#fff; margin-top:5px;"><b>Arslan:</b> ${msg}</div>`;
             input.value = '';
-            display.scrollTop = display.scrollHeight;
             
             try {
                 let res = await fetch('/chat?msg=' + encodeURIComponent(msg));
                 let data = await res.json();
-                display.innerHTML += `<div style="color:#00f2ff; margin-top:10px;"><b>JARVIS:</b> ${data.reply}</div>`;
+                display.innerHTML += `<div style="color:#00f2ff; margin-top:5px;"><b>JARVIS:</b> ${data.reply}</div>`;
             } catch (e) {
-                display.innerHTML += `<div style="color:red;">CONNECTION ERROR.</div>`;
+                display.innerHTML += `<div style="color:red;">SYSTEM OVERLOAD. RETRYING...</div>`;
             }
             display.scrollTop = display.scrollHeight;
         }
@@ -118,25 +102,19 @@ def home():
 @app.route('/chat')
 def chat():
     msg = request.args.get('msg')
-    # FAST MODEL: Llama 3 8B
-    API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+    # Use a very light model for speed
+    API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
     headers = {"Authorization": f"Bearer {HF_KEY}"}
     
     payload = {
-        "inputs": f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>You are JARVIS, the loyal AI of Sir Arslan. Keep answers extremely short and professional.<|eot_id|><|start_header_id|>user<|end_header_id|>{msg}<|eot_id|><|start_header_id|>assistant<|end_header_id|>",
-        "parameters": {"max_new_tokens": 50, "stop_sequences": ["<|eot_id|>"]}
+        "inputs": f"<|system|>You are JARVIS. Speak briefly.<|user|>{msg}<|assistant|>",
+        "parameters": {"max_new_tokens": 50}
     }
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=10)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=8)
         result = response.json()
-        
-        # Parsing response
-        if isinstance(result, list):
-            reply = result[0]['generated_text'].split("assistant<|end_header_id|>")[-1].strip()
-        else:
-            reply = "Sir, the core is still warming up. One more try?"
-            
+        reply = result[0]['generated_text'].split("<|assistant|>")[-1].strip()
         return jsonify({"reply": reply})
     except:
-        return jsonify({"reply": "System delay. Satellite link re-establishing."})
+        return jsonify({"reply": "Sir, server is busy. Please try one more time."})
