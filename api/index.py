@@ -4,7 +4,7 @@ from flask import Flask, render_template_string, request, jsonify
 
 app = Flask(__name__)
 
-# ✅ APNI STABLE HUGGING FACE KEY (Token)
+# ✅ ARSLAN INDUSTRIES STABLE KEY
 HF_KEY = "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"
 
 HTML_UI = """
@@ -79,10 +79,10 @@ HTML_UI = """
         <div class="arc-reactor"></div>
         <h2>J.A.R.V.I.S.</h2>
         <div id="display">
-            <div style="color:#00f2ff;">SYSTEM SECURE. READY FOR YOUR COMMANDS, SIR ARSLAN.</div>
+            <div style="color:#00f2ff;">SYSTEM RE-BOOTED. LLAMA-3 CORE ACTIVE. READY, SIR ARSLAN.</div>
         </div>
         <div style="padding-top: 15px;">
-            <input type="text" id="userInput" placeholder="Listening..." onkeypress="if(event.key==='Enter') send()">
+            <input type="text" id="userInput" placeholder="Type here..." onkeypress="if(event.key==='Enter') send()">
         </div>
     </div>
 
@@ -102,7 +102,7 @@ HTML_UI = """
                 let data = await res.json();
                 display.innerHTML += `<div style="color:#00f2ff; margin-top:10px;"><b>JARVIS:</b> ${data.reply}</div>`;
             } catch (e) {
-                display.innerHTML += `<div style="color:red;">CONNECTION LOST.</div>`;
+                display.innerHTML += `<div style="color:red;">CONNECTION ERROR.</div>`;
             }
             display.scrollTop = display.scrollHeight;
         }
@@ -118,18 +118,25 @@ def home():
 @app.route('/chat')
 def chat():
     msg = request.args.get('msg')
-    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
+    # FAST MODEL: Llama 3 8B
+    API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
     headers = {"Authorization": f"Bearer {HF_KEY}"}
     
     payload = {
-        "inputs": f"<s>[INST] You are JARVIS, the personal AI assistant for Sir Arslan. Keep answers very short and loyal. Question: {msg} [/INST]",
-        "parameters": {"max_new_tokens": 100}
+        "inputs": f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>You are JARVIS, the loyal AI of Sir Arslan. Keep answers extremely short and professional.<|eot_id|><|start_header_id|>user<|end_header_id|>{msg}<|eot_id|><|start_header_id|>assistant<|end_header_id|>",
+        "parameters": {"max_new_tokens": 50, "stop_sequences": ["<|eot_id|>"]}
     }
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=15)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=10)
         result = response.json()
-        reply = result[0]['generated_text'].split("[/INST]")[-1].strip()
+        
+        # Parsing response
+        if isinstance(result, list):
+            reply = result[0]['generated_text'].split("assistant<|end_header_id|>")[-1].strip()
+        else:
+            reply = "Sir, the core is still warming up. One more try?"
+            
         return jsonify({"reply": reply})
     except:
-        return jsonify({"reply": "Sir, internal circuits are stable but the satellite link is slow. Please re-send."})
+        return jsonify({"reply": "System delay. Satellite link re-establishing."})
