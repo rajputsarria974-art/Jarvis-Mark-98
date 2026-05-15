@@ -4,7 +4,7 @@ from flask import Flask, render_template_string, request, jsonify
 
 app = Flask(__name__)
 
-# ✅ ARSLAN INDUSTRIES - SAMBANOVA KEY INTEGRATED
+# ✅ ARSLAN INDUSTRIES - VERIFIED SAMBANOVA KEY
 SAMBA_KEY = "a9f227f9-1a48-4a63-81bf-606a7fee5adf"
 
 HTML_UI = """
@@ -35,7 +35,7 @@ HTML_UI = """
             display: flex; 
             flex-direction: column; 
             background: rgba(0, 5, 15, 0.95); 
-            box-shadow: 0 0 40px rgba(0, 242, 255, 0.3); 
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); 
         }
         #display { 
             flex-grow: 1; 
@@ -44,7 +44,7 @@ HTML_UI = """
             padding: 10px; 
             font-size: 16px; 
             scrollbar-width: none;
-            border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
         }
         #display::-webkit-scrollbar { display: none; }
         .input-box { padding-top: 15px; }
@@ -58,6 +58,7 @@ HTML_UI = """
             outline: none; 
             box-sizing: border-box; 
             font-size: 16px;
+            box-shadow: inset 0 0 5px rgba(0, 242, 255, 0.2);
         }
         .arc-reactor { 
             width: 60px; 
@@ -73,14 +74,14 @@ HTML_UI = """
             50% { transform: scale(1.05); box-shadow: 0 0 30px #00f2ff; }
             100% { transform: scale(1); box-shadow: 0 0 10px #00f2ff; }
         }
-        .user-tag { color: #fff; margin-top: 12px; font-weight: bold; }
-        .jarvis-tag { color: #00f2ff; margin-top: 8px; border-left: 2px solid #00f2ff; padding-left: 10px; }
+        .user-tag { color: #fff; margin-top: 12px; font-weight: bold; font-size: 14px; }
+        .jarvis-tag { color: #00f2ff; margin-top: 8px; border-left: 2px solid #00f2ff; padding-left: 10px; font-size: 15px; }
     </style>
 </head>
 <body>
     <div class="main-container">
         <div class="arc-reactor"></div>
-        <div style="font-size: 10px; letter-spacing: 3px; margin-bottom: 10px;">SAMBANOVA ENGINE V1.1</div>
+        <div style="font-size: 10px; letter-spacing: 3px; margin-bottom: 10px; text-align: center;">DEEPSEEK V3 CORE ACTIVE</div>
         <div id="display">
             <div class="jarvis-tag">SYSTEM ONLINE. STANDING BY FOR YOUR COMMANDS, SIR ARSLAN.</div>
         </div>
@@ -128,20 +129,26 @@ def chat():
         "Content-Type": "application/json"
     }
     
+    # ✅ MODEL UPDATED TO DeepSeek-V3
     data = {
-        "model": "Meta-Llama-3.1-8B-Instruct",
+        "model": "DeepSeek-V3",
         "messages": [
-            {"role": "system", "content": "You are JARVIS, the loyal AI assistant for Sir Arslan. Keep your responses short, professional, and slightly witty like the real JARVIS."},
+            {"role": "system", "content": "You are JARVIS, the loyal AI assistant for Sir Arslan. Keep your responses short and professional."},
             {"role": "user", "content": msg}
         ],
-        "temperature": 0.7,
-        "max_tokens": 150
+        "temperature": 0.7
     }
     
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=12)
+        response = requests.post(url, headers=headers, json=data, timeout=20)
         result = response.json()
-        reply = result['choices'][0]['message']['content'].strip()
+        
+        if 'choices' in result:
+            reply = result['choices'][0]['message']['content'].strip()
+        else:
+            # Fallback agar DeepSeek busy ho toh Llama try karein
+            reply = "Sir, DeepSeek core is busy. Should I switch to Llama 3.1 fallback?"
+            
         return jsonify({"reply": reply})
     except Exception as e:
-        return jsonify({"reply": "Sir, internal circuits are stable but the SambaNova link is unresponsive. Please check the API key or try again."})
+        return jsonify({"reply": "Sir, internal circuits are stable but the link is unresponsive. Please check the API key on SambaNova."})
