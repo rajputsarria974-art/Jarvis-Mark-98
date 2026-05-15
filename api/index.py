@@ -14,79 +14,34 @@ HTML_UI = """
     <title>JARVIS MARK-100</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Lightweight Animations for better performance on Asus X52J */
-        body { 
-            background: #000; 
-            color: #00f2ff; 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .main-container {
-            border: 2px solid #00f2ff;
-            width: 90%;
-            max-width: 500px;
-            height: 80vh;
-            border-radius: 15px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            background: rgba(0, 20, 40, 0.9);
-            box-shadow: 0 0 20px #00f2ff;
-        }
-        #display {
-            flex-grow: 1;
-            overflow-y: auto;
-            text-align: left;
-            padding: 10px;
-            font-size: 16px;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            background: #000;
-            border: 1px solid #00f2ff;
-            color: #fff;
-            border-radius: 5px;
-            outline: none;
-        }
-        .status-dot {
-            height: 10px;
-            width: 10px;
-            background-color: #00f2ff;
-            border-radius: 50%;
-            display: inline-block;
-            animation: blink 1s infinite;
-        }
-        @keyframes blink { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
+        body { background: #000; color: #00f2ff; font-family: 'Segoe UI', sans-serif; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .main-container { border: 1px solid #00f2ff; width: 90%; max-width: 500px; height: 70vh; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; background: #050505; box-shadow: 0 0 15px #00f2ff; }
+        #display { flex-grow: 1; overflow-y: auto; text-align: left; padding: 10px; font-size: 16px; scrollbar-width: none; }
+        input { width: 100%; padding: 12px; background: #111; border: 1px solid #00f2ff; color: #fff; border-radius: 5px; outline: none; box-sizing: border-box; }
+        .pulse { height: 8px; width: 8px; background: #00f2ff; border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
     </style>
 </head>
 <body>
     <div class="main-container">
-        <div style="text-align: left;"><span class="status-dot"></span> JARVIS CORE ONLINE</div>
-        <div id="display">READY FOR INPUT, SIR ARSLAN.</div>
-        <input type="text" id="userInput" placeholder="Command..." onkeypress="if(event.key==='Enter') send()">
+        <div style="font-size: 12px; margin-bottom: 10px;"><span class="pulse"></span> CONNECTED TO CORE</div>
+        <div id="display">Awaiting command, Sir Arslan...</div>
+        <input type="text" id="userInput" placeholder="Enter command..." onkeypress="if(event.key==='Enter') send()">
     </div>
-
     <script>
         async function send() {
             let input = document.getElementById('userInput');
             let display = document.getElementById('display');
             let msg = input.value;
             if(!msg) return;
-
-            display.innerHTML += `<div style="color:#fff; margin-top:5px;"><b>Arslan:</b> ${msg}</div>`;
+            display.innerHTML += `<div style="color:#888; margin-top:10px;">> ${msg}</div>`;
             input.value = '';
-            
             try {
                 let res = await fetch('/chat?msg=' + encodeURIComponent(msg));
                 let data = await res.json();
                 display.innerHTML += `<div style="color:#00f2ff; margin-top:5px;"><b>JARVIS:</b> ${data.reply}</div>`;
             } catch (e) {
-                display.innerHTML += `<div style="color:red;">SYSTEM OVERLOAD. RETRYING...</div>`;
+                display.innerHTML += `<div style="color:red;">SIGNAL LOST. RECONNECTING...</div>`;
             }
             display.scrollTop = display.scrollHeight;
         }
@@ -102,19 +57,26 @@ def home():
 @app.route('/chat')
 def chat():
     msg = request.args.get('msg')
-    # Use a very light model for speed
-    API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
+    # Switching to Google Gemma 2B (Very light and fast)
+    API_URL = "https://api-inference.huggingface.co/models/google/gemma-1.1-2b-it"
     headers = {"Authorization": f"Bearer {HF_KEY}"}
     
     payload = {
-        "inputs": f"<|system|>You are JARVIS. Speak briefly.<|user|>{msg}<|assistant|>",
-        "parameters": {"max_new_tokens": 50}
+        "inputs": f"User: {msg}\nAssistant: You are JARVIS, Sir Arslan's AI. Answer in 1 short sentence.",
+        "parameters": {"max_new_tokens": 50, "wait_for_model": True}
     }
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=8)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=12)
         result = response.json()
-        reply = result[0]['generated_text'].split("<|assistant|>")[-1].strip()
+        
+        if isinstance(result, list):
+            reply = result[0]['generated_text'].split("Assistant:")[-1].strip()
+        elif 'error' in result:
+            reply = "Sir, the server is under heavy load. Please send the command again."
+        else:
+            reply = "Core initialized. Ready for next task."
+            
         return jsonify({"reply": reply})
     except:
-        return jsonify({"reply": "Sir, server is busy. Please try one more time."})
+        return jsonify({"reply": "Satellite link unstable. Standing by."})
